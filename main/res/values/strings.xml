@@ -1,0 +1,39 @@
+<resources>
+    <string name="app_name">qi1siwole笔记</string>
+
+    <string name="radio_group_name">操作对象：</string>
+    <string name="word_text">实体</string>
+    <string name="tag_text">标签</string>
+
+    <string name="button_name_add_word">添加实体</string>
+    <string name="button_name_add_tag">添加标签</string>
+
+    <string name="item_name_show_map">显示关联</string>
+    <string name="item_name_add_map">添加关联</string>
+    <string name="item_name_check_all">全选</string>
+    <string name="item_name_check_inverse">反选</string>
+    <string name="item_name_edit">改名</string>
+    <string name="item_name_remove">删除</string>
+    <string name="item_name_show_word_no_tag">显示无标签实体</string>
+
+    <string name="dialog_title">提示</string>
+    <string name="dialog_positive">确定</string>
+    <string name="dialog_negative">取消</string>
+    <string name="delete_tag_dialog_message">确定删除标签吗？\n（与标签相关的实体不会被删除）</string>
+    <string name="delete_tag_dialog_positive">删除</string>
+    <string name="delete_word_dialog_message">确定删除实体吗？\n（部分删除只删除所选标签相关的实体，并且无标签的实体也被会删除）</string>
+    <string name="delete_word_dialog_positive">完全删除</string>
+    <string name="delete_word_dialog_neutral">部分删除</string>
+    <string name="rename_dialog_title">提交</string>
+    <string name="ori_tag_name">原标签名：</string>
+    <string name="new_tag_name">新标签名：</string>
+    <string name="ori_word_name">原实体名：</string>
+    <string name="new_word_name">新实体名：</string>
+
+    <string name="rename_tag_toast_invalid_text">请输入非空的标签名</string>
+    <string name="rename_word_toast_invalid_text">请输入非空的实体名</string>
+    <string name="rename_tag_toast_same_text">请输入一个新标签名</string>
+    <string name="rename_word_toast_same_text">请输入一个新实体名</string>
+    <string name="add_map_toast_check_both">需要同时选中实体和标签</string>
+    <string name="rename_word_toast_only_support_check_one">只能选中一个实体进行改名</string>
+</resources>

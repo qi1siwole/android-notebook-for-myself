@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/item_show_map"
+        android:title="@string/item_name_show_map"/>
+
+    <item
+        android:id="@+id/item_add_map"
+        android:title="@string/item_name_add_map"/>
+
+    <item
+        android:id="@+id/item_check_all"
+        android:title="@string/item_name_check_all"/>
+
+    <item
+        android:id="@+id/item_check_inverse"
+        android:title="@string/item_name_check_inverse"/>
+
+    <item
+        android:id="@+id/item_edit"
+        android:title="@string/item_name_edit"/>
+
+    <item
+        android:id="@+id/item_remove"
+        android:title="@string/item_name_remove"/>
+
+    <item
+        android:id="@+id/item_show_word_no_tag"
+        android:title="@string/item_name_show_word_no_tag"/>
+</menu>
