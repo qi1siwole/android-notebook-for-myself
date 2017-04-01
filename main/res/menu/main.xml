@@ -27,4 +27,14 @@
     <item
         android:id="@+id/item_show_word_no_tag"
         android:title="@string/item_name_show_word_no_tag"/>
+
+    <item
+        android:id="@+id/item_tag_use_set_operation"
+        android:title="@string/item_name_tag_use_set_operation"
+        android:visible="true"/>
+
+    <item
+        android:id="@+id/item_tag_use_default_intersection_operation"
+        android:title="@string/item_name_tag_use_default_intersection_operation"
+        android:visible="false"/>
 </menu>

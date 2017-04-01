@@ -1,5 +1,9 @@
 package com.pw.qi1siwole.mynotebook.Common;
 
+import android.content.Context;
+import android.content.DialogInterface;
+import android.support.v7.app.AlertDialog;
+
 import com.pw.qi1siwole.mynotebook.R;
 
 import java.util.Collection;
@@ -24,6 +28,25 @@ public class Common {
         public int Value() {
             return this.value;
         }
+    }
+
+    /**
+     * AlertDialog用于显示Item
+     */
+    public interface OnDialogItemClickListener {
+        void onClick(int which);
+    }
+    public static void showItemDialog(Context ctx, String[] texts, final OnDialogItemClickListener onDialogItemClickListener) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(ctx);
+        builder.setTitle(R.string.choose_item_dialog_title);
+        builder.setItems(texts, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                onDialogItemClickListener.onClick(which);
+            }
+        });
+        builder.setNegativeButton(R.string.dialog_negative, null);
+        builder.show();
     }
 
     // 列表项被选中复选框的监听器

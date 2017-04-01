@@ -4,6 +4,7 @@
               android:orientation="horizontal">
 
     <TextView
+        android:id="@+id/tv_radio_group"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_vertical"

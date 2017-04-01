@@ -44,7 +44,7 @@ public class TagAdapter extends ArrayAdapter<ObjectWithCheck> {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 tag.setChecked(isChecked);
-                if (isChecked && null != mOnListItemCheckedListener) {
+                if (null != mOnListItemCheckedListener) {
                     mOnListItemCheckedListener.onListItemChecked(Common.RADIO_BUTTON.TAG.Value());
                 }
             }

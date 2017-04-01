@@ -7,7 +7,9 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.Layout;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,6 +25,12 @@ import com.pw.qi1siwole.mynotebook.Common.CheckCondition;
 import com.pw.qi1siwole.mynotebook.Common.CheckConditionWithParam;
 import com.pw.qi1siwole.mynotebook.Common.Common;
 import com.pw.qi1siwole.mynotebook.Common.ObjectWithCheck;
+import com.pw.qi1siwole.mynotebook.Condition.Condition;
+import com.pw.qi1siwole.mynotebook.Condition.ConditionData;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionState;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionStateGroup;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionStateItem;
+import com.pw.qi1siwole.mynotebook.Condition.View.ConditionView;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,7 +41,11 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements Common.OnListItemCheckedListener {
 
+    private TextView mTvRadioGroup;
     private RadioGroup mRadioGroup;
+
+    private LinearLayout mAddWordLayout;
+    private LinearLayout mAddTagLayout;
 
     private EditText mWordEditText;
     private EditText mTagEditText;
@@ -43,6 +55,13 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     private ListView mWordListView;
     private ListView mTagListView;
+
+    private ConditionView mConditionView;
+
+    private MenuItem mMenuItemAddMap;
+    private MenuItem mMenuItemDefault;
+    private MenuItem mMenuItemSetOperation;
+
 
     private List<ObjectWithCheck> mWordList = new ArrayList<>();
     private List<ObjectWithCheck> mTagList = new ArrayList<>();
@@ -58,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         // getSupportActionBar().hide(); // 隐藏标题栏
         setContentView(R.layout.activity_main);
 
-        dbHelper = new MyDatabaseHelper(this, "Word.db", null, 1);
+        dbHelper = MyDatabaseHelper.initDatabaseHelper(this, MyDatabaseHelper.DB_NAME, null, MyDatabaseHelper.VERSION_1_0);
 
         // 单选框组合：名称And标签
         mRadioGroup = (RadioGroup)findViewById(R.id.radio_group);
@@ -68,6 +87,11 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
                 onRadioButtonCheckedChanged();
             }
         });
+
+        mTvRadioGroup = (TextView)findViewById(R.id.tv_radio_group);
+
+        mAddTagLayout = (LinearLayout)findViewById(R.id.layout_add_tag);
+        mAddWordLayout = (LinearLayout)findViewById(R.id.layout_add_word);
 
         // 输入框：名称
         mWordEditText = (EditText)findViewById(R.id.edit_text_word);
@@ -99,7 +123,10 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
                 onAddTagButtonClicked();
             }
         });
-        
+
+        // 自定义列表：条件
+        _dealWithConditionView();
+
         // 列表：标签
         this.queryTagListFromDB();
         mTagListView = (ListView)findViewById(R.id.list_view_tag);
@@ -117,9 +144,35 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         mTagAdapter.setOnListItemCheckedListener(this);
     }
 
+    /**
+     * 处理条件控件相关事务
+     */
+    private void _dealWithConditionView() {
+        mConditionView = (ConditionView)findViewById(R.id.condition_view);
+
+        ConditionData<String, String> conditionData = new ConditionData<>(new ConditionData.RequestDataMethod<String, String>() {
+            @Override
+            public List<String> requestKeys() {
+                return MyDatabaseHelper.queryTagListFromDB();
+            }
+
+            @Override
+            public Set<String> requestValue(String key) {
+                return MyDatabaseHelper.queryWordSetByTagFromDB(key);
+            }
+        });
+
+        mConditionView.initView(conditionData);
+    }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main, menu);
+
+        mMenuItemAddMap = menu.findItem(R.id.item_add_map);
+        mMenuItemDefault = menu.findItem(R.id.item_tag_use_default_intersection_operation);
+        mMenuItemSetOperation = menu.findItem(R.id.item_tag_use_set_operation);
+
         return true;
     }
 
@@ -154,7 +207,14 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
             case R.id.item_show_word_no_tag:
                 this.onShowWordNoTagItemSelected();
                 break;
+            case R.id.item_tag_use_default_intersection_operation:
+                this.onTagUseDefaultIntersectionOperation();
+                break;
+            case R.id.item_tag_use_set_operation:
+                this.onTagUseSetOperation();
+                break;
             default:
+                break;
         }
 
         return true;
@@ -162,6 +222,9 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     @Override
     public void onListItemChecked(int id) {
+        if (isWordInputValid()) {
+            return;
+        }
         mRadioGroup.check(id);
         onRadioButtonCheckedChanged();
     }
@@ -252,7 +315,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
             return;
         }
 
-        this.insertTagIntoDB(inputText);
+        MyDatabaseHelper.insertTagIntoDB(inputText);
         Tag tag = new Tag(inputText, isWordInputValid());
         mTagList.add(tag);
         mTagAdapter.notifyDataSetChanged();
@@ -260,6 +323,11 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     /* 事件：点击菜单项<显示操作对象的一方映射到另一方的列表> */
     private void onShowMapItemSelected() {
+        if (!isTagUsingDefaultOperation()) {
+            showSetOperationResult();
+            return;
+        }
+
         if (isOperatingOnWord()) {
             if (this.isWordListViewShow()) {
                 showMapFromWordToTag();
@@ -362,7 +430,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
     private void onShowWordNoTagItemSelected() {
         this.showWordListView(true);
         mWordList.clear();
-        Set<String> set = queryWordSetByTagFromDB("");
+        Set<String> set = MyDatabaseHelper.queryWordSetByTagFromDB("");
         List<String> list = new ArrayList<>();
         list.addAll(set);
         Collections.sort(list);
@@ -373,47 +441,45 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         mWordAdapter.notifyDataSetChanged();
     }
 
+    /* 事件：点击菜单项<标签使用复杂集合运算> */
+    private void onTagUseSetOperation() {
+        mMenuItemAddMap.setVisible(false);
+        mMenuItemDefault.setVisible(true);
+        mMenuItemSetOperation.setVisible(false);
+
+        mConditionView.setVisibility(View.VISIBLE);
+        mTagListView.setVisibility(View.GONE);
+
+        mRadioGroup.check(Common.RADIO_BUTTON.WORD.Value());
+        mRadioGroup.setVisibility(View.GONE);
+        mTvRadioGroup.setVisibility(View.GONE);
+
+        mWordList.clear();
+        showWordListView(false);
+
+        mAddTagLayout.setVisibility(View.GONE);
+        mAddWordLayout.setVisibility(View.GONE);
+    }
+
+    /* 事件：点击菜单项<标签使用简单交集运算> */
+    private void onTagUseDefaultIntersectionOperation() {
+        mMenuItemAddMap.setVisible(true);
+        mMenuItemDefault.setVisible(false);
+        mMenuItemSetOperation.setVisible(true);
+
+        mConditionView.setVisibility(View.GONE);
+        mTagListView.setVisibility(View.VISIBLE);
+
+        mRadioGroup.setVisibility(View.VISIBLE);
+        mTvRadioGroup.setVisibility(View.VISIBLE);
+
+        mAddTagLayout.setVisibility(View.VISIBLE);
+        mAddWordLayout.setVisibility(View.VISIBLE);
+    }
+
     /*******************************************************
      【数据库操作】
      *******************************************************/
-    /* 查询Word表中是否存在word */
-    private boolean isWordExistInWordFromDB(String wordText) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        Cursor cursor = db.rawQuery("select 1 from Word where word = '" + wordText + "'", null);
-        return cursor.moveToFirst();
-    }
-
-    /* 返回Tag的Word集合 */
-    private Set<String> queryWordSetByTagFromDB(String tagText) {
-        Set<String> set = new HashSet<>();
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        Cursor cursor = db.rawQuery("select word from Word where tag = '" + tagText + "'", null);
-        if (cursor.moveToFirst()) {
-            do {
-                String wordText = cursor.getString(cursor.getColumnIndex("word"));
-                set.add(wordText);
-            } while (cursor.moveToNext());
-        }
-        return set;
-    }
-
-    /* 返回Word的Tag集合（第二个参数：是否包含空标签） */
-    private Set<String> queryTagSetByWordFromDB(String wordText, boolean containsNullTag) {
-        Set<String> set = new HashSet<>();
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        Cursor cursor = db.rawQuery("select tag from Word where word = '" + wordText + "'", null);
-        if (cursor.moveToFirst()) {
-            do {
-                String tagText = cursor.getString(cursor.getColumnIndex("tag"));
-                if (!containsNullTag && tagText.isEmpty()) {
-                    continue;
-                }
-                set.add(tagText);
-            } while (cursor.moveToNext());
-        }
-        return set;
-    }
-
     /* 查询Word：  " "（空格）起到SQL中"%"通配符的作用 */
     private void queryWordListFromDB(String part) {
         mWordList.clear();
@@ -447,141 +513,6 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
             } while (cursor.moveToNext());
         }
     }
-    
-    /* 添加Tag */
-    private void insertTagIntoDB(String tagText) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL("insert into Tag(tag) values(?)", new String[]{tagText});
-    }
-
-    private void doSQLWithCollection(Collection<String> collection, String sql_format) {
-        String[] texts = collection.toArray(new String[collection.size()]);
-        String str = Common.getStringWithJoin(collection, ", ", "?");
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL(String.format(sql_format, str), texts);
-    }
-
-    /* 删除Tag中的记录*/
-    private void deleteFromTagFromDB(Collection<String> collection) {
-        final String SQL_FORMAT = "delete from Tag where tag in (%s)";
-        this.doSQLWithCollection(collection, SQL_FORMAT);
-    }
-
-    /* 删除Word中的记录：给定word相关记录完全删除 */
-    private void deleteFromWordUsingWordFromDB(Collection<String> collection) {
-        final String SQL_FORMAT = "delete from Word where word in (%s)";
-        this.doSQLWithCollection(collection, SQL_FORMAT);
-    }
-
-    /* 删除Word中的记录：给定tag相关记录完全删除 */
-    private void deleteFromWordUsingTagFromDB(Collection<String> collection) {
-        final String SQL_FORMAT = "delete from Word where tag in (%s)";
-        this.doSQLWithCollection(collection, SQL_FORMAT);
-    }
-
-    /* 更新Word中的tag值 */
-    private void updateTagValInWordFromDB(Collection<String> collection, String newVal) {
-        final String SQL_FORMAT = "update Word set tag = '" + newVal + "' where tag in (%s)";
-        this.doSQLWithCollection(collection, SQL_FORMAT);
-    }
-    private void updateOneTagValInWordFromDB(String tagText, String newVal) {
-        Collection<String> collection = new ArrayList<>();
-        collection.add(tagText);
-        this.updateTagValInWordFromDB(collection, newVal);
-    }
-
-    /* 从Word表中删除无用的记录（只适用仅删除一个Tag） */
-    private void deleteInValidRecordFromWordFromDB() {
-        final String SQL =  "delete from Word where word in "
-                            + "(select distinct word from Word where word in "
-                            +"(select word from Word where tag = '') and tag <> '') and tag = ''";
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL(SQL);
-    }
-
-    /* 部分删除Word记录（包括关联所选标签，以及无标签记录） */
-    private Set<String> deletePartFromWordFromDB(List<String> tagTextList, List<String> wordTextList) {
-        Set<String> removedWordTextSet = new HashSet<>();
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        String strWords = Common.getStringWithJoin(wordTextList, ", ", "'%s'");
-
-        Cursor cursor = db.rawQuery(String.format("select word from Word where word in (%s) and tag = ''", strWords), null);
-        if (cursor.moveToFirst()) {
-            do {
-                String wordText = cursor.getString(cursor.getColumnIndex("word"));
-                removedWordTextSet.add(wordText);
-            } while (cursor.moveToNext());
-        }
-
-        db.execSQL(String.format("delete from Word where word in (%s) and tag = ''", strWords));
-
-        if (!tagTextList.isEmpty()) {
-            String strTags = Common.getStringWithJoin(tagTextList, ", ", "'%s'");
-
-            cursor = db.rawQuery(String.format("select distinct word from Word where word in (%s) and tag in (%s)", strWords, strTags), null);
-            if (cursor.moveToFirst()) {
-                do {
-                    String wordText = cursor.getString(cursor.getColumnIndex("word"));
-                    removedWordTextSet.add(wordText);
-                } while (cursor.moveToNext());
-            }
-
-            db.execSQL(String.format("delete from Word where word in (%s) and tag in (%s)", strWords, strTags));
-        }
-
-        return removedWordTextSet;
-    }
-
-    /* 添加所有选中的Tag与Word的关联 */
-    private void insertWordIntoDB(List<String> tagTextList, List<String> wordTextList) {
-        final String SQL = "insert into Word (word, tag) values (?, ?)";
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.beginTransaction();
-        try {
-            for (String tagText: tagTextList) {
-                for (String wordText: wordTextList) {
-                    db.execSQL(SQL, new String[] { wordText, tagText });
-                }
-            }
-            db.setTransactionSuccessful();
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            db.endTransaction();
-            db.close();
-        }
-    }
-
-    /* 添加数据到Word：使用表中已有tag的word数据，赋给新tag值 */
-    private void insertIntoWordSelectFromDB(List<String> tagTextList, String newTagText, boolean isReallyNew) {
-        final String SQL_FORMAT_1 = "insert into Word (word, tag)"
-                + " select distinct word, '%s' from Word where tag in (%s)";
-        final String SQL_FORMAT_2 = " and word not in ("
-                + " select word from Word where tag = '%s')";
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        String strTags = Common.getStringWithJoin(tagTextList, ", ", "'%s'");
-        String sql = String.format(SQL_FORMAT_1, newTagText, strTags);
-        if (!isReallyNew) {
-            sql += String.format(SQL_FORMAT_2, newTagText);
-        }
-        db.execSQL(sql);
-    }
-
-    /* 更改Word中的word值 */
-    private void updateWordWithWordFromDB(String oriWordText, String newWordText, boolean isReallyNew) {
-        final String SQL_FORMAT_1 = "update Word set word = '%s' where word = '%s'";
-        final String SQL_FORMAT_2 = "insert into Word (word, tag)"
-                + " select '%s', tag from Word where word = '%s' and tag not in ("
-                + " select tag from Word where word = '%s')";
-        String sql_1 = String.format(SQL_FORMAT_1, newWordText, oriWordText);
-        String sql_2 = String.format(SQL_FORMAT_2, newWordText, oriWordText, newWordText);
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL(isReallyNew ? sql_1 : sql_2);
-    }
 
     /*******************************************************
     【其它私有方法】
@@ -595,6 +526,11 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
     private void showToast(String param) {
         Toast.makeText(MainActivity.this, param, Toast.LENGTH_SHORT)
                 .show();
+    }
+
+    // 标签在使用默认交集运算
+    private boolean isTagUsingDefaultOperation() {
+        return !mMenuItemDefault.isVisible();
     }
 
     // 返回：输入名称是否有效（有效：不能是空或只是空格）
@@ -763,13 +699,15 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
                         removeWordCompletely(wordTextList);
                     }
                 });
-        builder.setNeutralButton(R.string.delete_word_dialog_neutral,
-                new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        removeWordRelyOnTag(wordTextList);
-                    }
-                });
+        if (isTagUsingDefaultOperation()) {
+            builder.setNeutralButton(R.string.delete_word_dialog_neutral,
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            removeWordRelyOnTag(wordTextList);
+                        }
+                    });
+        }
         builder.setNegativeButton(R.string.dialog_negative,
                 new DialogInterface.OnClickListener() {
                     @Override
@@ -804,12 +742,12 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     // 修改Word：data + UI
     private void renameWord(String oriWordText, String newWordText) {
-        boolean isReallyNew = !this.isWordExistInWordFromDB(newWordText);
+        boolean isReallyNew = !MyDatabaseHelper.isWordExistInWordFromDB(newWordText);
 
         // Word
-        this.updateWordWithWordFromDB(oriWordText, newWordText, isReallyNew);
+        MyDatabaseHelper.updateWordWithWordFromDB(oriWordText, newWordText, isReallyNew);
         if (!isReallyNew) {
-            this.deleteInValidRecordFromWordFromDB();
+            MyDatabaseHelper.deleteInValidRecordFromWordFromDB();
         }
 
         // UI
@@ -844,15 +782,15 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         boolean isReallyNew = index == mTagList.size();
         
         // Tag
-        this.deleteFromTagFromDB(tagTextList);
+        MyDatabaseHelper.deleteFromTagFromDB(tagTextList);
         if (isReallyNew) {
-            this.insertTagIntoDB(newTagText);
+            MyDatabaseHelper.insertTagIntoDB(newTagText);
         }
 
         // Word
-        this.insertIntoWordSelectFromDB(tagTextList, newTagText, isReallyNew);
+        MyDatabaseHelper.insertIntoWordSelectFromDB(tagTextList, newTagText, isReallyNew);
 
-        this.deleteFromWordUsingTagFromDB(tagTextList);
+        MyDatabaseHelper.deleteFromWordUsingTagFromDB(tagTextList);
 
         // UI
         index = tagTextList.size();
@@ -876,19 +814,19 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     // 添加映射
     private void addMapBetweenTagAndWord(List<String> tagTextList, List<String> wordTextList) {
-        this.deletePartFromWordFromDB(tagTextList, wordTextList);
-        this.insertWordIntoDB(tagTextList, wordTextList);
+        MyDatabaseHelper.deletePartFromWordFromDB(tagTextList, wordTextList);
+        MyDatabaseHelper.insertWordIntoDB(tagTextList, wordTextList);
     }
 
     // 删除Word：完全删除
     private void removeWordCompletely(List<String> wordTextList) {
-        this.deleteFromWordUsingWordFromDB(wordTextList);
+        MyDatabaseHelper.deleteFromWordUsingWordFromDB(wordTextList);
         this.removeCheckedWordOnUI();
     }
 
     // 删除Word：部分删除
     private void removeWordRelyOnTag(List<String> wordTextList) {
-        Set<String> removedWordTextSet = this.deletePartFromWordFromDB(this.getCheckedTagTextList(), wordTextList);
+        Set<String> removedWordTextSet = MyDatabaseHelper.deletePartFromWordFromDB(this.getCheckedTagTextList(), wordTextList);
         this.removeWordOnUI(removedWordTextSet);
     }
 
@@ -916,7 +854,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
 
     // 删除Tag数据：只删除标签
     private void removeTagOnly(List<String> tagTextList) {
-        this.deleteFromTagFromDB(tagTextList);
+        MyDatabaseHelper.deleteFromTagFromDB(tagTextList);
         this.removeOnlyTagFromWord(tagTextList);
         this.removeTagOnUI();
     }
@@ -924,8 +862,8 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
     // 从Word表中移除给定tag相关的记录（word部分保留）
     private void removeOnlyTagFromWord(Collection<String> collection) {
         for (String tagText: collection) {
-            this.updateOneTagValInWordFromDB(tagText, "");
-            this.deleteInValidRecordFromWordFromDB();
+            MyDatabaseHelper.updateOneTagValInWordFromDB(tagText, "");
+            MyDatabaseHelper.deleteInValidRecordFromWordFromDB();
         }
     }
 
@@ -951,7 +889,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         for (ObjectWithCheck obj: mTagList) {
             Tag tag = (Tag)obj;
             if (tag.isChecked()) {
-                Set<String> newSet = queryWordSetByTagFromDB(tag.getName());
+                Set<String> newSet = MyDatabaseHelper.queryWordSetByTagFromDB(tag.getName());
                 if (isFirst) {
                     isFirst = false;
                     if (newSet.isEmpty()) {
@@ -1001,7 +939,7 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
         for (ObjectWithCheck obj: mWordList) {
             Word word = (Word)obj;
             if (word.isChecked()) {
-                Set<String> newSet = queryTagSetByWordFromDB(word.getText(), false);
+                Set<String> newSet = MyDatabaseHelper.queryTagSetByWordFromDB(word.getText(), false);
                 if (isFirst) {
                     isFirst = false;
                     if (newSet.isEmpty()) {
@@ -1042,5 +980,73 @@ public class MainActivity extends AppCompatActivity implements Common.OnListItem
             Common.setChecked(mTagList, false);
         }
         mTagAdapter.notifyDataSetChanged();
+    }
+
+    /**
+     * 显示集合运算结果
+     */
+    private void showSetOperationResult() {
+        mWordList.clear();
+        Set<String> set = mConditionView.getResult();
+
+        if (null != set && !set.isEmpty()) {
+            List<String> wordTextList = new ArrayList<>();
+            wordTextList.addAll(set);
+            Collections.sort(wordTextList);
+            for (String wordText: wordTextList) {
+                Word word = new Word(wordText);
+                mWordList.add(word);
+            }
+        }
+
+        mWordAdapter.notifyDataSetChanged();
+
+        this.showWordListView(null != set && !set.isEmpty());
+    }
+
+    private Condition _test_init_base_condition(ConditionData conditionData) {
+        Condition condition_2 = new Condition(conditionData);
+        condition_2.setType(Condition.TYPE_ITEM);
+        ConditionStateItem state_2 = (ConditionStateItem)condition_2.getState();
+        state_2.setSelectedIndex(0);
+
+        Condition condition_3 = new Condition(conditionData);
+        condition_3.setType(Condition.TYPE_ITEM);
+        ConditionStateItem state_3 = (ConditionStateItem)condition_3.getState();
+        state_3.setSelectedIndex(1);
+
+        Condition condition_1 = new Condition(conditionData);
+        condition_1.setType(Condition.TYPE_GROUP);
+        ConditionStateGroup state_1 = (ConditionStateGroup)condition_1.getState();
+        state_1.resetOperatorType(ConditionStateGroup.TYPE_DIFFERENCE_SET);
+        state_1.updateOperand(0, condition_2);
+        state_1.updateOperand(1, condition_3);
+
+        Condition condition_4 = new Condition(conditionData);
+        condition_4.setType(Condition.TYPE_ITEM);
+        ConditionStateItem state_4 = (ConditionStateItem)condition_4.getState();
+        state_4.setSelectedIndex(0);
+
+        Condition condition_5 = new Condition(conditionData);
+        condition_5.setType(Condition.TYPE_ITEM);
+        ConditionStateItem state_5 = (ConditionStateItem)condition_5.getState();
+        state_5.setSelectedIndex(1);
+
+        Condition condition_6 = new Condition(conditionData);
+        condition_6.setType(Condition.TYPE_GROUP);
+        ConditionStateGroup state_6 = (ConditionStateGroup)condition_6.getState();
+        state_6.resetOperatorType(ConditionStateGroup.TYPE_DIFFERENCE_SET);
+        state_6.updateOperand(1, condition_4);
+        state_6.updateOperand(0, condition_5);
+
+        Condition baseCondition = new Condition(conditionData);
+
+        baseCondition.setType(Condition.TYPE_GROUP);
+        ConditionStateGroup state = (ConditionStateGroup)baseCondition.getState();
+        state.resetOperatorType(ConditionStateGroup.TYPE_UNION);
+        state.updateOperand(0, condition_1);
+        state.updateOperand(1, condition_6);
+
+        return baseCondition;
     }
 }

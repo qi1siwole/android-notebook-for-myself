@@ -15,6 +15,8 @@
     <string name="item_name_edit">改名</string>
     <string name="item_name_remove">删除</string>
     <string name="item_name_show_word_no_tag">显示无标签实体</string>
+    <string name="item_name_tag_use_set_operation">标签使用复杂集合运算</string>
+    <string name="item_name_tag_use_default_intersection_operation">标签使用简单交集运算</string>
 
     <string name="dialog_title">提示</string>
     <string name="dialog_positive">确定</string>
@@ -30,10 +32,20 @@
     <string name="ori_word_name">原实体名：</string>
     <string name="new_word_name">新实体名：</string>
 
+    <string name="choose_item_dialog_title">请选择：</string>
+    <string name="choose_as_item">选择作为单项</string>
+    <string name="choose_as_set_operation">选择作为集合</string>
+    <string name="reset">重置</string>
+    <string name="reset_operator">更改操作符</string>
+    <string name="add_a_operand">添加条件</string>
+    <string name="remove_this_operand">移除该条件</string>
+
     <string name="rename_tag_toast_invalid_text">请输入非空的标签名</string>
     <string name="rename_word_toast_invalid_text">请输入非空的实体名</string>
     <string name="rename_tag_toast_same_text">请输入一个新标签名</string>
     <string name="rename_word_toast_same_text">请输入一个新实体名</string>
     <string name="add_map_toast_check_both">需要同时选中实体和标签</string>
     <string name="rename_word_toast_only_support_check_one">只能选中一个实体进行改名</string>
+
+    <string name="condition_toast_cant_change_operator">当前状态无法修改操作符</string>
 </resources>
