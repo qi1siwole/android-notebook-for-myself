@@ -11,6 +11,8 @@
 
     <include layout="@layout/add_tag" />
 
+    <include layout="@layout/condition_view" />
+
     <include layout="@layout/list_views" />
 
 </LinearLayout>

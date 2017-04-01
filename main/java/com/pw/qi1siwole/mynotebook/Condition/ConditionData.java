@@ -83,7 +83,7 @@ public class ConditionData<K, V> {
         return mRequestDataMethod.requestValue(key);
     }
 
-    interface RequestDataMethod<K, V> {
+    public interface RequestDataMethod<K, V> {
         List<K> requestKeys();
         Set<V> requestValue(K key);
     }

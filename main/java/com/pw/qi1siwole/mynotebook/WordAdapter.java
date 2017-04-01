@@ -46,7 +46,7 @@ public class WordAdapter extends ArrayAdapter<ObjectWithCheck> {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 word.setChecked(isChecked);
-                if (isChecked && null != mOnListItemCheckedListener) {
+                if (null != mOnListItemCheckedListener) {
                     mOnListItemCheckedListener.onListItemChecked(Common.RADIO_BUTTON.WORD.Value());
                 }
             }

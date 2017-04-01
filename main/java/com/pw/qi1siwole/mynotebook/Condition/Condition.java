@@ -1,5 +1,10 @@
 package com.pw.qi1siwole.mynotebook.Condition;
 
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionState;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionStateGroup;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionStateItem;
+import com.pw.qi1siwole.mynotebook.Condition.State.ConditionStateNone;
+
 import java.util.List;
 import java.util.Set;
 
@@ -13,18 +18,27 @@ public class Condition {
     public static final int TYPE_ITEM = 1;
     public static final int TYPE_GROUP = 2;
 
+    private Condition mParentCondition;
     private ConditionData mData;
     private ConditionState mState;
-    private Condition mParentCondition;
+    private int mLevel;
+    private boolean mIsExpand;
 
     public Condition(ConditionData data) {
         mParentCondition = null;
         mData = data;
-        setType(TYPE_NONE);
+        mState = new ConditionStateNone(this);
+        //mLevel = 0;
+        mIsExpand = true;
     }
 
-    public void setParentCondion(Condition condition) {
+    public ConditionState getState() {
+        return mState;
+    }
+
+    public void setParentCondition(Condition condition) {
         mParentCondition = condition;
+        //mLevel = condition.getLevel() + 1;
     }
 
     public Condition getParentCondition() {
@@ -39,11 +53,27 @@ public class Condition {
         return mData;
     }
 
+    public int getLevel() {
+        return mLevel;
+    }
+
+    public void setLevel(int level) {
+        mLevel = level;
+    }
+
+    public boolean isExpand() {
+        return mIsExpand;
+    }
+
+    public void setExpand(boolean isExpand) {
+        mIsExpand = isExpand;
+    }
+
     public List getKeys() {
         if (null == mData) {
             return null;
         }
-        return mData.getKeys();
+        return mData.requestKeys();
     }
 
     public Set getValue(int index) {
@@ -73,6 +103,11 @@ public class Condition {
         }
 
         return true;
+    }
+
+    public void reset() {
+        mState.reset();
+        mIsExpand = true;
     }
 
     public boolean isComplete() {

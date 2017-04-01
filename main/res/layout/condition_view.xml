@@ -1,0 +1,8 @@
+<com.pw.qi1siwole.mynotebook.Condition.View.ConditionView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/condition_view"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:visibility="gone"
+    android:background="#baf2f0">
+
+</com.pw.qi1siwole.mynotebook.Condition.View.ConditionView>
